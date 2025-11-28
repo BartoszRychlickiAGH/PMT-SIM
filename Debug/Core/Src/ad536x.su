@@ -1,0 +1,5 @@
+../Core/Src/ad536x.c:6:6:AD536x_Init	24	static
+../Core/Src/ad536x.c:30:19:AD536x_Write	24	static
+../Core/Src/ad536x.c:49:19:AD536x_SetCode	16	static
+../Core/Src/ad536x.c:54:6:AD536x_Pulse_hit1	24	static
+../Core/Src/ad536x.c:60:6:AD536x_Pulse_hit2	24	static

@@ -1,0 +1,5 @@
+../Core/Src/ad536x.c:6:6:AD536x_Init	1
+../Core/Src/ad536x.c:30:19:AD536x_Write	1
+../Core/Src/ad536x.c:49:19:AD536x_SetCode	1
+../Core/Src/ad536x.c:54:6:AD536x_Pulse_hit1	2
+../Core/Src/ad536x.c:60:6:AD536x_Pulse_hit2	2
