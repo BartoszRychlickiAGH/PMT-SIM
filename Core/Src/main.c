@@ -21,7 +21,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "ad536x.h"
 
 /* USER CODE END Includes */
 
@@ -38,28 +37,115 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
+#define AD5360_MODE_WRITE_DAC       0x3 	 //Wartość bitów M0 i M1:  M1 = 1, M0 = 1
+#define AD5360_ADDR_GROUP0_CH0      0x08     // Adres w rejestrze DAC dla wyjścia VOUT0: A5-A0 = 001000
+#define DAC_RESOLUTION              65536.0f // Rozdzielczość 16-bitowego DAC: 2^16
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-SPI_HandleTypeDef hspi2;
+SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-AD536x_t myDac;
+uint8_t TxData[3];
+uint8_t RxData[3];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
-static void MX_SPI2_Init(void);
+static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+HAL_StatusTypeDef SPI_SendFrame(uint8_t tx_data[3]){
+	HAL_StatusTypeDef status;
+
+	HAL_GPIO_WritePin(nSYNC_GPIO_Port, nSYNC_Pin, GPIO_PIN_RESET);
+
+	status  = HAL_SPI_TransmitReceive(&hspi1, tx_data, RxData, 3, HAL_MAX_DELAY);
+
+	HAL_GPIO_WritePin(nSYNC_GPIO_Port, nSYNC_Pin, GPIO_PIN_SET);
+
+	return status;
+}
+
+
+void AD5361_Write(uint32_t cmd24){
+	uint8_t tx[3];
+	tx[0] = (cmd24 >> 16) & 0xFF;
+	tx[1] = (cmd24 >> 8) & 0xFF;
+	tx[2] = (cmd24 >> 0) & 0xFF;
+	HAL_GPIO_WritePin(nSYNC_GPIO_Port,nSYNC_Pin,GPIO_PIN_RESET);
+	HAL_SPI_Transmit(&hspi1,tx,3,HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(nSYNC_GPIO_Port,nSYNC_Pin,GPIO_PIN_SET);
+}
+
+void AD5361_GPIO_H(void){
+	uint32_t cmd = 0;
+
+	//000011010000000000000011
+	cmd |= (0x0DUL << 16);
+	cmd |= (1U << 1);
+	cmd |= (1U << 0);
+
+
+	AD5361_Write(cmd);
+}
+void AD5361_GPIO_L(void){
+	uint32_t cmd = 0;
+
+	//000011010000000000000010
+	cmd |= (0x0DUL << 16);
+	cmd |= (1U << 1);
+
+
+	AD5361_Write(cmd);
+
+}
+
+void AD5360_SetVoltage_VOUT0(float voltage, float v_ref) {
+
+    float span = 4.0f * v_ref;
+    float v_min = -2.0f * v_ref; // Np. -10V dla Vref = 5V
+    float v_max =  2.0f * v_ref; // Np. +10V dla Vref = 5V
+
+    // Sprawdzenie czy podane napięcie jest w zakresie
+    if (voltage < v_min) voltage = v_min;
+    if (voltage > v_max) voltage = v_max;
+
+    // kod = ((Vout - Vmin) / Span) * MaxCode
+    uint16_t dac_code = (uint16_t)(((voltage - v_min) / span) * (DAC_RESOLUTION - 1));
+
+    // Bity 23-22: Tryb (11 -> Zapis DAC)
+    // Bity 21-16: Adres (001000 -> VOUT0)
+    // Bity 15-0:  Dane (Kod DAC)
+    uint32_t packet = 0;
+
+    packet |= ((uint32_t)AD5360_MODE_WRITE_DAC << 22);   // Ustawienie trybu
+    packet |= ((uint32_t)AD5360_ADDR_GROUP0_CH0 << 16);  // Ustawienie adresu
+    packet |= (dac_code & 0xFFFF);                       // Ustawienie danych
+
+    // Zapis pakietu do rejestru
+    AD5361_Write(packet);
+
+-	// Wystawienie na pin LDAC niskiego stanu
+    AD5361_GPIO_L();
+
+	// Opoźnienie w celu zapisania danych w rejestrze
+    for(volatile int i=0; i<10; i++);
+
+    // Wystawienie na pin LDAC wysokiego stanu, aby zakończyć operacje
+    AD5361_GPIO_H();
+}
+
 
 /* USER CODE END 0 */
 
@@ -93,62 +179,47 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
-  MX_SPI2_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_WritePin(CSn_GPIO_Port, CSn_Pin, GPIO_PIN_SET);
-
-  /* USER CODE BEGIN 2 */
-
-
-
-
-
-  AD536x_Init(&myDac,
-              &hspi2,
-              CSn_GPIO_Port, CSn_Pin,
-              GPIOC, HIT1_Pin,
-              GPIOC, HIT2_Pin
-  );
-  /* USER CODE END 2 */
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint16_t code = 0;
 
-  UNUSED(code);
-
-  AD536x_SetCode(&myDac, 0x0, 0x8000);
-
-
-  //uint32_t then = HAL_GetTick();
+  // Ustawienie domyślnego stanu na pinie LDAC (połączonego przewodem z pinem GPIO)
+  AD5361_GPIO_H();
 
   while (1)
   {
+      //AD5360_SetVoltage_VOUT0(2.5f, 5.0f);
+      //HAL_Delay(1000);
+
+      //AD5360_SetVoltage_VOUT0(-5.0f, 5.0f);
+      //HAL_Delay(1000);
+
+      //AD5360_SetVoltage_VOUT0(0.0f, 5.0f);
+      //HAL_Delay(1000);
+
+	  // Ustawienie napięcie 5V na wyjściu Vout0
+      AD5360_SetVoltage_VOUT0(5.0f, 5.0f);
+	  HAL_Delay(3000);
 
 
+	  /*
+	   * Rozładowanie kondensatora
+	   */
 
-	  	  AD536x_SetCode(&myDac, 0x1, 0xFFFF);
+	  HAL_GPIO_WritePin(hit1_GPIO_Port, hit1_Pin, 1);
 
+	  HAL_Delay(1500);
 
-	      AD536x_Pulse_hit1(&myDac);
+	  HAL_GPIO_WritePin(hit1_GPIO_Port, hit1_Pin, 0);
 
-
-	      HAL_Delay(500);
-
-	      AD536x_SetCode(&myDac, 0x1, 0x0000);
-
-
-	      AD536x_Pulse_hit2(&myDac);
-
-
-	      HAL_Delay(500);
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
   }
   /* USER CODE END 3 */
 }
@@ -165,12 +236,13 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL16;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -192,40 +264,40 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief SPI2 Initialization Function
+  * @brief SPI1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_SPI2_Init(void)
+static void MX_SPI1_Init(void)
 {
 
-  /* USER CODE BEGIN SPI2_Init 0 */
+  /* USER CODE BEGIN SPI1_Init 0 */
 
-  /* USER CODE END SPI2_Init 0 */
+  /* USER CODE END SPI1_Init 0 */
 
-  /* USER CODE BEGIN SPI2_Init 1 */
+  /* USER CODE BEGIN SPI1_Init 1 */
 
-  /* USER CODE END SPI2_Init 1 */
-  /* SPI2 parameter configuration*/
-  hspi2.Instance = SPI2;
-  hspi2.Init.Mode = SPI_MODE_MASTER;
-  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi2.Init.CLKPolarity = SPI_POLARITY_HIGH;
-  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi2.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN SPI2_Init 2 */
+  /* USER CODE BEGIN SPI1_Init 2 */
 
-  /* USER CODE END SPI2_Init 2 */
+  /* USER CODE END SPI1_Init 2 */
 
 }
 
@@ -280,10 +352,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, CSn_Pin|HIT2_Pin|HIT1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, hit1_Pin|hit2_Pin|nSYNC_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -291,26 +360,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LD2_Pin */
-  GPIO_InitStruct.Pin = LD2_Pin;
+  /*Configure GPIO pins : hit1_Pin hit2_Pin nSYNC_Pin */
+  GPIO_InitStruct.Pin = hit1_Pin|hit2_Pin|nSYNC_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : CSn_Pin HIT2_Pin HIT1_Pin */
-  GPIO_InitStruct.Pin = CSn_Pin|HIT2_Pin|HIT1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
