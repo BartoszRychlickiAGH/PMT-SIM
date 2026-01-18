@@ -1,21 +1,31 @@
-PMT-SIM:
+#PMT-SIM:
     The project includes implementations of functionalities to run DAC embedded in PMT board.
 
     DAC datasheet: https://www.alldatasheet.com/datasheet-pdf/view/521541/AD/AD5361BSTZ-REEL1.html
 
-How to Run:
+#How to Run:
     To properly launch project, it only requires correct hardware connection. Loading project on is held via ST-LINK V2.
 
-Authors:
+#Authors:
 
 	- Bartosz Rychlicki
     - Michał Gądek
     - Michał Jurek
 
-Functonalities:
+#Functonalities:
     1. Setting DAC in correct mode
     2. Reading DAC status
     3. Sending HITs
 
-Changelog:
+#UART Commends:
+	I. RX: (UART commands, whose stm32 can collect and control PCB outputs)
+		- h;<1/2>\r\n 		 	 - triggers HIT1 or HIT2
+		- <1/6>;<-10/10>\r\n 	 - sets exact voltage on predefined PMT-SIM's PCB output
+
+	II. TX: (UART commends to send to GUI, to confirm excecuting received command)
+		- h;<1/2>;<OK/ER>   	 - returns error or ok status in case execution of HIT1 or HIT2 went succesfully
+		- <1/6>;<-10/10>;<OK/ER> - returns error or ok status in case execution, of setting voltage on given channel, went succesfully
+		
+#Changelog:
     [27.10.2025 5:47 pm] Github repository was created
+	
