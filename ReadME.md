@@ -14,6 +14,7 @@ Uruchomienie projektu wymaga poprawnego przygotowania warstwy sprzętowej oraz w
 * **Integrated Programmer:** Płytka **Nucleo-F103RB** posiada wbudowany programator **ST-LINK V2-1**. Nie są wymagane zewnętrzne urządzenia – wystarczy połączenie z komputerem za pomocą kabla USB.
 * **Connectivity:** * Upewnij się, że zworki na złączu **CN2** (ST-LINK) są założone, co umożliwia programowanie mikrokontrolera na płytce.
     * Połącz piny zgodnie z sekcją [Pinout](#pinout), aby zapewnić komunikację z modułem PMT-SIM.
+* ** W GUI.py ustaw odpowiedni **Port COM**, który może zostać odczytany zz **Device Manager** pod nazwą: **STMircoelectronics STLink Virtual COM Port**.
 
 
 
