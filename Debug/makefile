@@ -1,6 +1,6 @@
 ################################################################################
 # Automatically-generated file. Do not edit!
-# Toolchain: GNU Tools for STM32 (12.3.rel1)
+# Toolchain: GNU Tools for STM32 (13.3.rel1)
 ################################################################################
 
 -include ../makefile.init
@@ -9,6 +9,7 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include PMT-SIM/Src/subdir.mk
 -include Drivers/STM32F1xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
@@ -34,34 +35,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := PMT
+BUILD_ARTIFACT_NAME := PMT_Tests
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-PMT.elf \
+PMT_Tests.elf \
 
 MAP_FILES += \
-PMT.map \
+PMT_Tests.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-PMT.list \
+PMT_Tests.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: PMT.elf secondary-outputs
+main-build: PMT_Tests.elf secondary-outputs
 
 # Tool invocations
-PMT.elf PMT.map: $(OBJS) $(USER_OBJS) C:\Users\brych\OneDrive\Pulpit\PROJEKTY\DesignLab\PMT\STM32F103RBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "PMT.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\brych\OneDrive\Pulpit\PROJEKTY\DesignLab\PMT\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="PMT.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+PMT_Tests.elf PMT_Tests.map: $(OBJS) $(USER_OBJS) C:\Users\brych\OneDrive\Pulpit\PROJEKTY\DL_Tests\PMT_Tests\STM32F103RBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "PMT_Tests.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\brych\OneDrive\Pulpit\PROJEKTY\DL_Tests\PMT_Tests\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="PMT_Tests.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +71,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-PMT.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "PMT.list"
+PMT_Tests.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "PMT_Tests.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) PMT.elf PMT.list PMT.map default.size.stdout
+	-$(RM) PMT_Tests.elf PMT_Tests.list PMT_Tests.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
