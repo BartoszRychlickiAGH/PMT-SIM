@@ -74,9 +74,13 @@ Komunikacja odbywa się za pomocą komend tekstowych z separatorem średnikowym 
 
 | Command Format | Action | Description |
 | :--- | :--- | :--- |
-| `h;<1/2>\r\n` | **Trigger HIT** | Aktywuje wyjście HIT1 (dla `1`) lub HIT2 (dla `2`). |
+| `h;<1/2>;<delay[Hz]>;freq[Hz]\r\n` | **Trigger HIT** | Aktywuje wyjście HIT1 (dla `1`) lub HIT2 (dla `2`). |
 | `<1/6>;<-10/10>\r\n` | **Set Voltage** | Ustawia napięcie (zakres -10V do 10V) na kanale (1-6). |
 
+**Logika wyzwalania komendy HIT:**
+* **Pojedynczy HIT (`delay = 0` i `freq = 0`):** Wywoływany jest tylko wybrany HIT (1 lub 2).
+* **Podwójny HIT z opóźnieniem (`delay != 0` i `freq = 0`):** Wyzwalane są oba hity. HIT2 następuje po HIT1 z zadanym czasem opóźnienia (`delay`).
+* **Sekwencja cykliczna (`delay != 0` i `freq != 0`):** HIT2 jest wyzwalany po HIT1 z opóźnieniem (`delay`), a cała ta operacja (sekwencja obu hitów) jest powtarzana z zadaną częstotliwością (`freq`).
 
 
 ### II. Transmitted Confirmations (TX)
@@ -84,7 +88,7 @@ Komunikacja odbywa się za pomocą komend tekstowych z separatorem średnikowym 
 
 | Response Format | Status | Description |
 | :--- | :--- | :--- |
-| `h;<1/2>;<OK/ER>` | **HIT Status** | Potwierdzenie (`OK`) lub błąd (`ER`) wykonania wyzwalacza. |
+| `h;<1/2>;<delay[Hz]>;freq[Hz];<OK/ER>` | **HIT Status** | Potwierdzenie (`OK`) lub błąd (`ER`) wykonania wyzwalacza. |
 | `<1/6>;<-10/10>;<OK/ER>` | **Voltage Status** | Potwierdzenie (`OK`) lub błąd (`ER`) ustawienia napięcia. |
 
 > **Note:** Status `ER` jest zwracany w przypadku odebrania wartości spoza zdefiniowanych zakresów (np. kanał `7` lub napięcie `15V`).
